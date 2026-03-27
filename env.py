@@ -232,7 +232,7 @@ class TwoArmCoopEnv(gym.Env):
     def _compute_reward(self, ee_pos, target_pos, action7, q):
         d = np.linalg.norm(ee_pos - target_pos)
        
-        reward = 200.0 * np.exp(-8.0 * d)
+        reward = 100.0 * np.exp(-8.0 * d)
         reward += -0.05 * np.linalg.norm(action7)
         reward += -0.01 * np.linalg.norm(q)
         if self.use_obstacles: 
@@ -242,7 +242,7 @@ class TwoArmCoopEnv(gym.Env):
             reward += R_obs
 
         if d < 0.15:
-            reward += 500.0
+            reward += 50.0
 
         return reward, d
 
@@ -279,7 +279,7 @@ class TwoArmCoopEnv(gym.Env):
 
         r_progress_1 = self.prev_d1 - d1
         r_progress_2 = self.prev_d2 - d2
-        r_progress = 5 * (r_progress_1 + r_progress_2)
+        r_progress = 15 * (r_progress_1 + r_progress_2)
 
         self.prev_d1 = d1
         self.prev_d2 = d2
@@ -296,12 +296,12 @@ class TwoArmCoopEnv(gym.Env):
         )
 
         if collision:
-            reward -= 300.0
+            reward -= 100.0
             terminated = True
 
         both_success = (d1 < 0.15) and (d2 < 0.15)
         if both_success:
-            reward += 1000.0
+            reward += 300.0
             terminated = True
 
         if self.current_time >= max_time:
@@ -309,6 +309,7 @@ class TwoArmCoopEnv(gym.Env):
 
         info = {
             "is_successful": both_success,
+            "collision": collision,
             "d1": float(d1),
             "d2": float(d2),
         }
@@ -327,6 +328,7 @@ class TwoArmCoopEnv(gym.Env):
     def close(self):
         p.disconnect()
 
+## 下面这些函数是记录日志，会调用的
 # 添加训练回调类以记录数据
 class EpisodeLogger(BaseCallback):
     def __init__(self, verbose=0):
