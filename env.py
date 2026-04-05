@@ -99,10 +99,13 @@ class TwoArmCoopEnv(gym.Env):
             dtype=np.float32
         )
         
-        #### Core : RRT
+        #### Optional : RRT
         self.current_time = 0.0
         self.global_path_1 = self._generate_global_path_single(-0.4,0.35,1.28,0.8,0.2,-0.83)
         self.global_path_2 = self._generate_global_path_single(-0.4,-0.35,1.28,0.8,0.2,-0.83)
+
+        self.arm1_trajectory = []
+        self.arm2_trajectory = []
         self.reset()
 
     def _create_obstacles(self):
@@ -170,7 +173,13 @@ class TwoArmCoopEnv(gym.Env):
                 np.array([self.current_time / max_time], dtype=np.float32),
             ]).astype(np.float32)  
         return obs
-
+    
+    def get_current_trajectory(self):
+        return {
+            "arm1_trajectory": np.array(self.arm1_trajectory, dtype=np.float32),
+            "arm2_trajectory": np.array(self.arm2_trajectory, dtype=np.float32),
+        }
+    
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
@@ -189,6 +198,9 @@ class TwoArmCoopEnv(gym.Env):
         self.prev_d2 = np.linalg.norm(ee2 - target_pos_2)
 
         self.current_time = 0.0
+        # 轨迹清空，并记录初始点
+        self.arm1_trajectory = [ee1.copy()]
+        self.arm2_trajectory = [ee2.copy()]
         return self._get_obs(), {}
 
     # def _update_obstacles(self):
@@ -268,7 +280,8 @@ class TwoArmCoopEnv(gym.Env):
         ee2 = self._get_ee_pos(self.robot2)
         q1 = self._get_joint_state(self.robot1)
         q2 = self._get_joint_state(self.robot2)
-        
+        self.arm1_trajectory.append(ee1.copy())   # Record trajectory for visualization
+        self.arm2_trajectory.append(ee2.copy())
         # Compute and design the reward functions
         r1, d1 = self._compute_reward(ee1, target_pos_1, a1, q1)
         r2, d2 = self._compute_reward(ee2, target_pos_2, a2, q2)
@@ -325,6 +338,67 @@ class TwoArmCoopEnv(gym.Env):
             [x0 + 0.75 * deltax, y0 + 0.75 * deltay, z0 + 0.75 * deltaz],
             [x0 + deltax, y0 + deltay, z0 + deltaz]
         ])
+    
+    def visualize_trajectory(self, trajectory_data=None):
+        if trajectory_data is None:
+            if len(self.arm1_trajectory) == 0 or len(self.arm2_trajectory) == 0:
+                print("没有轨迹数据可画，请先运行一个 episode。")
+                return
+            arm1_traj = np.array(self.arm1_trajectory)
+            arm2_traj = np.array(self.arm2_trajectory)
+        else:
+            arm1_traj = np.array(trajectory_data["arm1_trajectory"])
+            arm2_traj = np.array(trajectory_data["arm2_trajectory"])
+
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # 双臂轨迹
+        ax.plot(arm1_traj[:, 0], arm1_traj[:, 1], arm1_traj[:, 2],
+                label="Arm1 Trajectory", linewidth=2)
+        ax.plot(arm2_traj[:, 0], arm2_traj[:, 1], arm2_traj[:, 2],
+                label="Arm2 Trajectory", linewidth=2)
+
+        # 起点
+        ax.scatter(arm1_traj[0, 0], arm1_traj[0, 1], arm1_traj[0, 2],
+                   s=80, marker='o', label="Arm1 Start")
+        ax.scatter(arm2_traj[0, 0], arm2_traj[0, 1], arm2_traj[0, 2],
+                   s=80, marker='o', label="Arm2 Start")
+
+        # 终点
+        ax.scatter(arm1_traj[-1, 0], arm1_traj[-1, 1], arm1_traj[-1, 2],
+                   s=100, marker='^', label="Arm1 End")
+        ax.scatter(arm2_traj[-1, 0], arm2_traj[-1, 1], arm2_traj[-1, 2],
+                   s=100, marker='^', label="Arm2 End")
+
+        # 目标点
+        ax.scatter(target_pos_1[0], target_pos_1[1], target_pos_1[2],
+                   s=150, marker='*', label="Target 1")
+        ax.scatter(target_pos_2[0], target_pos_2[1], target_pos_2[2],
+                   s=150, marker='*', label="Target 2")
+
+        # 障碍物
+        if self.use_obstacles:
+            for i, obs in enumerate(self.obstacles):
+                obs_pos = np.array(p.getBasePositionAndOrientation(obs["body"])[0])
+                ax.scatter(obs_pos[0], obs_pos[1], obs_pos[2],
+                           s=120, marker='x', label=f"Obstacle {i+1}")
+
+        d1 = np.linalg.norm(arm1_traj[-1] - target_pos_1)
+        d2 = np.linalg.norm(arm2_traj[-1] - target_pos_2)
+
+        ax.text(arm1_traj[-1, 0], arm1_traj[-1, 1], arm1_traj[-1, 2],
+                f"d1={d1:.3f}", fontsize=10)
+        ax.text(arm2_traj[-1, 0], arm2_traj[-1, 1], arm2_traj[-1, 2],
+                f"d2={d2:.3f}", fontsize=10)
+
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_zlabel("Z")
+        ax.set_title("Best Episode Trajectory")
+        ax.legend()
+        plt.show()
+
     def close(self):
         p.disconnect()
 

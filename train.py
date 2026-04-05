@@ -27,29 +27,57 @@ env = TwoArmCoopEnv(render=False)
 check_env(env)
 
 # (I) PPO model
-# model = PPO(
+model = PPO(
+    "MlpPolicy",
+    env,
+    learning_rate=3e-4,   # 1e-4, 3e-4
+    seed = 42,
+    n_steps=2048,
+    batch_size=256,
+    n_epochs=10,
+    gamma=0.99,
+    gae_lambda=0.95,
+    clip_range=0.2,
+    ent_coef=0.0,
+    vf_coef=0.5,
+    max_grad_norm=0.5,
+    verbose=1,
+    tensorboard_log=LOG_DIR,
+)
+
+# # (II) SAC model  (0 SUCCESS RATE)
+# model = SAC(
 #     "MlpPolicy",
 #     env,
 #     learning_rate=3e-4,
-#     seed = 42,
-#     n_steps=2048,
-#     batch_size=256,
-#     n_epochs=10,
+#     buffer_size=100_000,
+#     learning_starts=50_000,
+#     batch_size=128,
+#     tau=0.005,
 #     gamma=0.99,
-#     gae_lambda=0.95,
-#     clip_range=0.2,
-#     ent_coef=0.0,
-#     vf_coef=0.5,
-#     max_grad_norm=0.5,
-#     verbose=1,
+#     train_freq=(1, "step"),
+#     gradient_steps=1,
+#     ent_coef="auto_0.2",   # 关键：降低探索强度
+#     target_update_interval=1,
+#     target_entropy="auto",
+#     use_sde=False,
 #     tensorboard_log=LOG_DIR,
+#     verbose=1,
+#     seed=42,
 # )
 
-# (II) SAC model
-model = SAC(
+# (III) DDPG model ()
+n_actions = env.action_space.shape[-1]
+
+action_noise = NormalActionNoise(
+    mean=np.zeros(n_actions),
+    sigma=0.1 * np.ones(n_actions)   # 初始探索噪声
+)
+
+model = DDPG(
     "MlpPolicy",
     env,
-    learning_rate=3e-4,
+    learning_rate=1e-3,
     buffer_size=100_000,
     learning_starts=50_000,
     batch_size=128,
@@ -57,10 +85,10 @@ model = SAC(
     gamma=0.99,
     train_freq=(1, "step"),
     gradient_steps=1,
-    ent_coef="auto_0.2",   # 关键：降低探索强度
-    target_update_interval=1,
-    target_entropy="auto",
-    use_sde=False,
+    action_noise=action_noise,
+    replay_buffer_class=None,
+    replay_buffer_kwargs=None,
+    optimize_memory_usage=False,
     tensorboard_log=LOG_DIR,
     verbose=1,
     seed=42,
