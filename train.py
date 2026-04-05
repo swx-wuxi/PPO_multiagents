@@ -11,6 +11,7 @@ from stable_baselines3.common.env_checker import check_env
 from env import TwoArmCoopEnv, EpisodeLogger
 # from env_norrt import TwoArmCoopEnv, EpisodeLogger
 from datetime import datetime
+import time
 
 LOG_DIR = "./logs"
 MODEL_DIR = "./models"
@@ -21,50 +22,51 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(CSV_DIR, exist_ok=True)
 os.makedirs(FIG_DIR, exist_ok=True)
 
+start_time = time.time()
 env = TwoArmCoopEnv(render=False)
 check_env(env)
 
 # (I) PPO model
-model = PPO(
-    "MlpPolicy",
-    env,
-    learning_rate=3e-4,
-    seed = 42,
-    n_steps=2048,
-    batch_size=256,
-    n_epochs=10,
-    gamma=0.99,
-    gae_lambda=0.95,
-    clip_range=0.2,
-    ent_coef=0.0,
-    vf_coef=0.5,
-    max_grad_norm=0.5,
-    verbose=1,
-    tensorboard_log=LOG_DIR,
-)
-
-# (II) DDPG model
-# model = SAC(
+# model = PPO(
 #     "MlpPolicy",
 #     env,
 #     learning_rate=3e-4,
-#     buffer_size=100_000,
-#     learning_starts=80_000,
-#     batch_size=128,
-#     tau=0.005,
+#     seed = 42,
+#     n_steps=2048,
+#     batch_size=256,
+#     n_epochs=10,
 #     gamma=0.99,
-#     train_freq=(1, "step"),
-#     gradient_steps=1,
-#     ent_coef="auto_0.2",   # 关键：降低探索强度
-#     target_update_interval=1,
-#     target_entropy="auto",
-#     use_sde=False,
-#     tensorboard_log=LOG_DIR,
+#     gae_lambda=0.95,
+#     clip_range=0.2,
+#     ent_coef=0.0,
+#     vf_coef=0.5,
+#     max_grad_norm=0.5,
 #     verbose=1,
-#     seed=42,
+#     tensorboard_log=LOG_DIR,
 # )
 
-total_timesteps = 750000
+# (II) SAC model
+model = SAC(
+    "MlpPolicy",
+    env,
+    learning_rate=3e-4,
+    buffer_size=100_000,
+    learning_starts=50_000,
+    batch_size=128,
+    tau=0.005,
+    gamma=0.99,
+    train_freq=(1, "step"),
+    gradient_steps=1,
+    ent_coef="auto_0.2",   # 关键：降低探索强度
+    target_update_interval=1,
+    target_entropy="auto",
+    use_sde=False,
+    tensorboard_log=LOG_DIR,
+    verbose=1,
+    seed=42,
+)
+
+total_timesteps = 2000000
 check_freq = 10000
 
 success_rates = []
@@ -125,7 +127,8 @@ for step in range(0, total_timesteps, check_freq):
             f"success_rate={best_success_rate:.2f}%"
         )
 
-
+end_time = time.time()
+print(f"Training SAC model for {total_timesteps} stepscompleted in {(end_time - start_time) / 60:.2f} minutes.")
 
 pd.DataFrame({
     "Timesteps": timesteps,
