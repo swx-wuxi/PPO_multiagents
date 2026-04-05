@@ -9,7 +9,7 @@ from stable_baselines3 import PPO
 from env import TwoArmCoopEnv
 import numpy as np
 
-model = PPO.load("models/ppo_two_arm_final_20260327_115251.zip")
+model = PPO.load("models/ppo_two_arm_best_20260405_021052.zip")
 env = TwoArmCoopEnv(render=False)
 final_d1 = []
 final_d2 = []

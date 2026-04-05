@@ -301,7 +301,7 @@ class TwoArmCoopEnv(gym.Env):
 
         both_success = (d1 < 0.15) and (d2 < 0.15)
         if both_success:
-            reward += 300.0
+            reward += 500.0
             terminated = True
 
         if self.current_time >= max_time:
