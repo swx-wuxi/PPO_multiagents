@@ -30,15 +30,15 @@ check_env(env)
 model = PPO(
     "MlpPolicy",
     env,
-    learning_rate=3e-4,   # 1e-4, 3e-4
+    learning_rate=3e-4,   
     seed = 42,
-    n_steps=2048,
+    n_steps=2048,   # 4096,1024,2048
     batch_size=256,
     n_epochs=10,
     gamma=0.99,
     gae_lambda=0.95,
     clip_range=0.2,
-    ent_coef=0.0,
+    ent_coef=0.0001,  # 0.001
     vf_coef=0.5,
     max_grad_norm=0.5,
     verbose=1,
@@ -57,7 +57,7 @@ model = PPO(
 #     gamma=0.99,
 #     train_freq=(1, "step"),
 #     gradient_steps=1,
-#     ent_coef="auto_0.2",   # 关键：降低探索强度
+#     ent_coef="auto_0.2",  
 #     target_update_interval=1,
 #     target_entropy="auto",
 #     use_sde=False,
@@ -66,33 +66,33 @@ model = PPO(
 #     seed=42,
 # )
 
-# (III) DDPG model ()
-n_actions = env.action_space.shape[-1]
+# # (III) DDPG model ()
+# n_actions = env.action_space.shape[-1]
 
-action_noise = NormalActionNoise(
-    mean=np.zeros(n_actions),
-    sigma=0.1 * np.ones(n_actions)   # 初始探索噪声
-)
+# action_noise = NormalActionNoise(
+#     mean=np.zeros(n_actions),
+#     sigma=0.1 * np.ones(n_actions)   # 初始探索噪声
+# )
 
-model = DDPG(
-    "MlpPolicy",
-    env,
-    learning_rate=1e-3,
-    buffer_size=100_000,
-    learning_starts=50_000,
-    batch_size=128,
-    tau=0.005,
-    gamma=0.99,
-    train_freq=(1, "step"),
-    gradient_steps=1,
-    action_noise=action_noise,
-    replay_buffer_class=None,
-    replay_buffer_kwargs=None,
-    optimize_memory_usage=False,
-    tensorboard_log=LOG_DIR,
-    verbose=1,
-    seed=42,
-)
+# model = DDPG(
+#     "MlpPolicy",
+#     env,
+#     learning_rate=3e-4,
+#     buffer_size=100_000,
+#     learning_starts=50_000,
+#     batch_size=128,
+#     tau=0.005,
+#     gamma=0.99,
+#     train_freq=(1, "step"),
+#     gradient_steps=1,
+#     action_noise=action_noise,
+#     replay_buffer_class=None,
+#     replay_buffer_kwargs=None,
+#     optimize_memory_usage=False,
+#     tensorboard_log=LOG_DIR,
+#     verbose=1,
+#     seed=42,
+# )
 
 total_timesteps = 2000000
 check_freq = 10000
@@ -156,7 +156,7 @@ for step in range(0, total_timesteps, check_freq):
         )
 
 end_time = time.time()
-print(f"Training SAC model for {total_timesteps} stepscompleted in {(end_time - start_time) / 60:.2f} minutes.")
+print(f"Training DDPG model for {total_timesteps} stepscompleted in {(end_time - start_time) / 60:.2f} minutes.")
 
 pd.DataFrame({
     "Timesteps": timesteps,

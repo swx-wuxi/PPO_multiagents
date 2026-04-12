@@ -71,12 +71,15 @@ class TwoArmCoopEnv(gym.Env):
         self.robot1 = p.loadURDF(URDF_PATH, self.robot1_base, useFixedBase=True)
         self.robot2 = p.loadURDF(URDF_PATH, self.robot2_base, useFixedBase=True)
         
+        self.target1_vis = self._create_target_marker([0.4, 0.55, 0.45], color=[0, 1, 0, 0.9])
+        self.target2_vis = self._create_target_marker([0.4, -0.15, 0.45], color=[1, 0.5, 0, 0.9])
+
         self.use_obstacles = True  # Choose whether to use obstacles
 
         if self.use_obstacles:
             self.obstacles = []
             self._create_obstacles()
-            # 观测：
+            # Observations:
             # robot1 joints(7) + robot2 joints(7)
             # ee1(3) + ee2(3)
             # target1-ee1(3) + target2-ee2(3) (for dynamic obstacles)
@@ -107,6 +110,19 @@ class TwoArmCoopEnv(gym.Env):
         self.arm1_trajectory = []
         self.arm2_trajectory = []
         self.reset()
+    def _create_target_marker(self, position, color=[0, 1, 0, 0.9], radius=0.08):
+        visual_shape = p.createVisualShape(
+            shapeType=p.GEOM_SPHERE,
+            radius=radius,
+            rgbaColor=color
+        )
+        marker_id = p.createMultiBody(
+            baseMass=0,
+            baseCollisionShapeIndex=-1,
+            baseVisualShapeIndex=visual_shape,
+            basePosition=position
+        )
+        return marker_id
 
     def _create_obstacles(self):
         # 创建第一个障碍物
